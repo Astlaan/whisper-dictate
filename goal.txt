@@ -1,0 +1,16 @@
+Short summary:
+Simple program written in rust to add a feature similar to Windows Dictation (Win+H), but powered by OpenAI Whisper.
+ 
+It should generate a binary that, upon execution:
+- displays an icon in the taskbar.
+- starts listening to the trigger shortcut: Win+J
+- Displays a icon in the task bar. It should be right-clickable, with a option to "Exit", terminating the process.
+
+
+Behaviour
+- Upon triggering via the shortcut, it should start listening using the microphone. If the icon in the taskbar was hidden, it should become visible during recording, and a small message balloon (or similar) should say "Recording" during the duration of the recording. In that baloon, if possible, it should appear the recording length, which is updated every second. If a balloon is not a good implementation for this, please suggest another.
+- When pressing the shortcut again, the program should send the audio to the OpenAI whisper API endpoint, for processing. It should use the api key stored in the OPENAI_API_KEY environment variable (if OPENAI_API_KEY cannot be found, it should open a balloon saying that api key must be set up in this environment variable, and not start recording). During this time, the balloon should change to "Processing". As soon as ready, and the text result should be pasted wherever the cursor is located. The balloon should disappear. If the icon was previously hidden, its okay to become hidden again.
+
+Notes:
+- Should be able to handle API error responses, and display that to the user via the balloon (ex. out of credits, etc). Simply show the error message to the user?
+- Maybe use mp3 (since it's smaller file size than .wav?)? Use whatever settings deemed reasonable (bit rate,  sample rate, channel, ...)

@@ -1,6 +1,25 @@
 [package]
-name = "windows-openai-whisper"
+name = "whisper-dictate"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+global-hotkey = "*"
+cpal = "*"
+reqwest = { version = "0.11.18", features = ["multipart", "json"] }
+tokio = { version = "*", features = ["full"] }
+lame = "*"
+anyhow = "*"
+tray-icon = { version = "*" }
+rust-embed = { version = "*", features = ["debug-embed"] }
+image = "*"
+lazy_static = "*"
+windows = { version = "*", features = ["Win32_UI_WindowsAndMessaging", "Win32_System_Com"] }
+winit = "*"
+tao = "*"
+serde_json = "*"
+enigo = { version = "*", features = ["serde"] }
+arboard = "1.2"
+
+[package.metadata.winres]
+windows_app = true
