@@ -171,14 +171,17 @@ async fn start_recording(state: &mut AppState) -> Result<()> {
         .default_input_device()
         .ok_or(anyhow::anyhow!("No input device"))?;
     let config = device.default_input_config()?;
+    println!("Using input device: {:?}", device.name()?);
 
    // Store the number of channels from the device
    state.channels = Some(config.channels());
+   println!("Channels: {:?}", state.channels.unwrap());
      
    state.pcm_buffer = Some(Arc::new(std::sync::Mutex::new(Vec::<i16>::new())));
    state.sample_rate = Some(config.sample_rate().0 as u32);
+   println!("Sample rate: {:?}", state.sample_rate.unwrap());
    let pcm_buffer = state.pcm_buffer.as_ref().unwrap().clone();
-    let err_fn = |err| eprintln!("Audio stream error: {:?}", err);
+   let err_fn = |err| eprintln!("Audio stream error: {:?}", err);
 
     let stream = match config.sample_format() {
         SampleFormat::I16 => device.build_input_stream(
@@ -188,6 +191,9 @@ async fn start_recording(state: &mut AppState) -> Result<()> {
                 move |data: &[i16], _: &cpal::InputCallbackInfo| {
                     let mut buf = pcm_buffer.lock().unwrap();
                     buf.extend_from_slice(data);
+                    if buf.len() < 100 {
+                        println!("Captured samples: {:?}", &data[..std::cmp::min(10, data.len())]);
+                    }
                 }
             },
             err_fn,
