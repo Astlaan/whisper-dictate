@@ -241,12 +241,14 @@ async fn start_recording_wrapper(state_rc: Rc<RefCell<AppState>>) -> Result<()> 
 
 
 async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
+    let processing_start_time = Instant::now();
     let result = (async {
         // Initial lock to stop stream and update immediate state
         let pcm_buffer_option;
         let sample_rate_option;
         let channels_option;
         let default_icon_clone;
+        let recording_duration;
         {
             let mut state_guard = state_rc.borrow_mut();
             if let Some(stream) = state_guard.stream.take() {
@@ -266,6 +268,13 @@ async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
             tray_clone.borrow_mut().set_icon(Some(default_icon_clone.clone()))?;
             state_guard.recording = false;
             
+            if let Some(start_time) = state_guard.start_time.take() {
+                recording_duration = start_time.elapsed();
+                println!("Recording duration: {:?}", recording_duration);
+            } else {
+                recording_duration = std::time::Duration::new(0, 0);
+            }
+
             pcm_buffer_option = state_guard.pcm_buffer.take();
             sample_rate_option = state_guard.sample_rate;
             channels_option = state_guard.channels;
@@ -306,15 +315,19 @@ async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
             (left, right)
         };
         
+        let encoding_start_time = Instant::now();
         let num_samples_per_channel = left.len();
         let mp3_buffer_size = (num_samples_per_channel as f32 * 1.25).ceil() as usize + 7200;
         let mut mp3_output = vec![0u8; mp3_buffer_size];
         let encoded_bytes = lame.encode(&left, &right, &mut mp3_output[..]).unwrap();
         mp3_output.truncate(encoded_bytes);
+        println!("Encoded MP3 size: {:.2} KB", encoded_bytes as f64 / 1024.0);
 
         let mut flush_buffer = vec![0u8; 7200];
         let flushed = lame.encode(&[], &[], &mut flush_buffer[..]).unwrap(); // Reverted to original flush
         mp3_output.extend_from_slice(&flush_buffer[..flushed]);
+        let encoding_duration = encoding_start_time.elapsed();
+        println!("Encoding duration: {:?}", encoding_duration);
 
         let api_key = match env::var("OPENAI_API_KEY") {
             Ok(val) => val,
@@ -386,6 +399,8 @@ async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
         let mut state_guard = state_rc.borrow_mut();
         state_guard.processing = false;
     }
+    let processing_duration = processing_start_time.elapsed();
+    println!("Total processing duration: {:?}", processing_duration);
     result
 }
 
