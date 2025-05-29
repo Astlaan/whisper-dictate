@@ -41,3 +41,14 @@ Please keep this recording limit in mind. For dictating longer content, it's adv
 ### Audio Configuration
 
 This tool uses your system's default microphone for audio capture. The captured audio is then encoded into a 128 kbps stereo MP3 format before being sent to the OpenAI Whisper API for transcription.
+
+### Run at Startup (Windows)
+
+To have Whisper-dictate launch automatically when you start your computer:
+
+1.  **Locate the Executable**: Find the `windows-openai-whisper.exe` file (and `mp3lame.dll`) where you extracted the release.
+2.  **Create a Shortcut**: Right-click on `windows-openai-whisper.exe` and select "Create shortcut".
+3.  **Open Startup Folder**: Press `Win + R` to open the Run dialog, type `shell:startup`, and press Enter. This will open your Windows Startup folder.
+4.  **Move Shortcut**: Drag and drop the newly created shortcut into the Startup folder.
+
+Now, Whisper-dictate will automatically start every time you log in to Windows.
