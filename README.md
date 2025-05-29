@@ -19,8 +19,8 @@ A fast, Rust-based dictation tool for Windows, utilizing the renowned OpenAI Whi
 
 ### Installation & Execution
 
-1.  Download the latest release executable (e.g., `windows-openai-whisper.exe`) and `mp3lame.dll` from the releases page.
-2.  Ensure both `windows-openai-whisper.exe` and `mp3lame.dll` are in the same directory.
+1.  Download the latest release executable (e.g., `whisper-dictate.exe`) and `mp3lame.dll` from the releases page.
+2.  Ensure both `whisper-dictate.exe` and `mp3lame.dll` are in the same directory.
 3.  To start the application, simply double-click the executable. It will appear in your system tray.
 
 ## How to Use
@@ -46,8 +46,8 @@ This tool uses your system's default microphone for audio capture. The captured 
 
 To have Whisper-dictate launch automatically when you start your computer:
 
-1.  **Locate the Executable**: Find the `windows-openai-whisper.exe` file (and `mp3lame.dll`) where you extracted the release.
-2.  **Create a Shortcut**: Right-click on `windows-openai-whisper.exe` and select "Create shortcut".
+1.  **Locate the Executable**: Find the `whisper-dictate.exe` file (and `mp3lame.dll`) where you extracted the release.
+2.  **Create a Shortcut**: Right-click on `whisper-dictate.exe` and select "Create shortcut".
 3.  **Open Startup Folder**: Press `Win + R` to open the Run dialog, type `shell:startup`, and press Enter. This will open your Windows Startup folder.
 4.  **Move Shortcut**: Drag and drop the newly created shortcut into the Startup folder.
 
