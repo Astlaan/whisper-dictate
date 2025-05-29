@@ -59,19 +59,18 @@ jobs:
         if: steps.download.outcome == 'failure' || steps.verify.outcome == 'failure'
         run: cargo build --release
 
-      - name: Move build artifacts
+      - name: Prepare locally built artifacts
+        # This step runs if PR artifacts were not used.
+        # It moves the built exe and the accompanying dll to the 'artifacts' directory.
         if: steps.download.outcome == 'failure' || steps.verify.outcome == 'failure'
         run: |
-          mkdir artifacts
-          move target/release/whisper-dictate.exe artifacts/
-          copy libs/libmp3lame.dll artifacts/mp3lame.dll # Assuming libmp3lame.dll is the one to be packaged and renamed
-
-      - name: Zip artifacts
-        run: |
-          Compress-Archive -Path artifacts/* -DestinationPath whisper-dictate-${{ steps.tag_version.outputs.new_tag }}.zip
+          if (-not (Test-Path artifacts)) { New-Item -ItemType Directory -Path artifacts }
+          Move-Item -Path target/release/whisper-dictate.exe -Destination artifacts/whisper-dictate.exe
+          Move-Item -Path target/release/mp3lame.dll -Destination artifacts/mp3lame.dll # build.rs copies this to target/release
         shell: pwsh
 
       # Get the next version tag (e.g., v0.1.0, v0.2.0)
+      # This must run BEFORE zipping if the tag name is part of the zip file name.
       - name: Bump version and push tag
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.2
@@ -80,6 +79,11 @@ jobs:
           default_bump: minor              # Increment minor version by default
           initial_version: "0.0.0"         # Start from 0.0.0, so first minor bump is 0.1.0
           tag_prefix: "v"                  # Prefix tags with "v"
+
+      - name: Zip artifacts
+        run: |
+          Compress-Archive -Path artifacts/* -DestinationPath whisper-dictate-${{ steps.tag_version.outputs.new_tag }}.zip
+        shell: pwsh
 
       - name: Get short version string
         id: short_version
