@@ -63,7 +63,13 @@ jobs:
         if: steps.download.outcome == 'failure' || steps.verify.outcome == 'failure'
         run: |
           mkdir artifacts
-          move target/release/*.exe artifacts/
+          move target/release/whisper-dictate.exe artifacts/
+          copy libs/libmp3lame.dll artifacts/mp3lame.dll # Assuming libmp3lame.dll is the one to be packaged and renamed
+
+      - name: Zip artifacts
+        run: |
+          Compress-Archive -Path artifacts/* -DestinationPath whisper-dictate-${{ steps.tag_version.outputs.new_tag }}.zip
+        shell: pwsh
 
       # Get the next version tag (e.g., v0.1.0, v0.2.0)
       - name: Bump version and push tag
@@ -75,14 +81,21 @@ jobs:
           initial_version: "0.0.0"         # Start from 0.0.0, so first minor bump is 0.1.0
           tag_prefix: "v"                  # Prefix tags with "v"
 
+      - name: Get short version string
+        id: short_version
+        run: |
+          TAG_NAME="${{ steps.tag_version.outputs.new_tag }}"
+          SHORT_TAG=$(echo "$TAG_NAME" | cut -d. -f1,2)
+          echo "short_tag_name=$SHORT_TAG" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            artifacts/*.exe
-            target/release/mp3lame.dll
+          files: whisper-dictate-${{ steps.tag_version.outputs.new_tag }}.zip
           tag_name: ${{ steps.tag_version.outputs.new_tag }}     # Use the tag from the previous step
-          name: Release ${{ steps.tag_version.outputs.new_tag }} # Use the tag in the release name
+          name: Release ${{ steps.short_version.outputs.short_tag_name }}
           draft: false
           prerelease: false
         env:
