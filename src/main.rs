@@ -173,15 +173,15 @@ async fn start_recording(state: &mut AppState) -> Result<()> {
     let config = device.default_input_config()?;
     println!("Using input device: {:?}", device.name()?);
 
-   // Store the number of channels from the device
-   state.channels = Some(config.channels());
-   println!("Channels: {:?}", state.channels.unwrap());
-     
-   state.pcm_buffer = Some(Arc::new(std::sync::Mutex::new(Vec::<i16>::new())));
-   state.sample_rate = Some(config.sample_rate().0 as u32);
-   println!("Sample rate: {:?}", state.sample_rate.unwrap());
-   let pcm_buffer = state.pcm_buffer.as_ref().unwrap().clone();
-   let err_fn = |err| eprintln!("Audio stream error: {:?}", err);
+    // Store the number of channels from the device
+    state.channels = Some(config.channels());
+    println!("Channels: {:?}", state.channels.unwrap());
+
+    state.pcm_buffer = Some(Arc::new(std::sync::Mutex::new(Vec::<i16>::new())));
+    state.sample_rate = Some(config.sample_rate().0 as u32);
+    println!("Sample rate: {:?}", state.sample_rate.unwrap());
+    let pcm_buffer = state.pcm_buffer.as_ref().unwrap().clone();
+    let err_fn = |err| eprintln!("Audio stream error: {:?}", err);
 
     let stream = match config.sample_format() {
         SampleFormat::I16 => device.build_input_stream(
@@ -192,7 +192,10 @@ async fn start_recording(state: &mut AppState) -> Result<()> {
                     let mut buf = pcm_buffer.lock().unwrap();
                     buf.extend_from_slice(data);
                     if buf.len() < 100 {
-                        println!("Captured samples: {:?}", &data[..std::cmp::min(10, data.len())]);
+                        println!(
+                            "Captured samples: {:?}",
+                            &data[..std::cmp::min(10, data.len())]
+                        );
                     }
                 }
             },
@@ -244,6 +247,16 @@ async fn stop_and_process(state: Arc<Mutex<AppState>>) -> Result<()> {
         }
         state_locked.record_flag.store(false, Ordering::Relaxed);
         drop(state_locked);
+
+        // Set icon back to default and update state immediately after stopping recording.
+        let mut state_locked = state.lock().await;
+        state_locked
+            .tray
+            .lock()
+            .await
+            .set_icon(Some(state_locked.default_icon.clone()))?;
+        state_locked.recording = false;
+        drop(state_locked); // Drop the lock before the async block
 
         // Update the tray to indicate processing.
         show_balloon(
@@ -374,14 +387,6 @@ async fn stop_and_process(state: Arc<Mutex<AppState>>) -> Result<()> {
         use enigo::{Enigo, Settings};
         let mut enigo = Enigo::new(&Settings::default()).unwrap();
         let _ = enigo.text(&transcription_text);
-
-        let mut state_locked = state.lock().await;
-        state_locked
-            .tray
-            .lock()
-            .await
-            .set_icon(Some(state_locked.default_icon.clone()))?;
-        state_locked.recording = false;
 
         Ok(())
     })
