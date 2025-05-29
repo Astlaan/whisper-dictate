@@ -78,7 +78,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: artifacts/*.exe
+          files: |
+            artifacts/*.exe
+            target/release/mp3lame.dll
           tag_name: ${{ steps.tag_version.outputs.new_tag }}     # Use the tag from the previous step
           name: Release ${{ steps.tag_version.outputs.new_tag }} # Use the tag in the release name
           draft: false
