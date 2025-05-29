@@ -1,0 +1,87 @@
+name: Create Release
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write # Needed to create tags and releases
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Important for the tagging action to see all history and tags
+
+      # Try to download artifacts from PR build
+      - name: Download PR artifacts
+        id: download
+        uses: dawidd6/action-download-artifact@v2
+        continue-on-error: true
+        with:
+          workflow: build.yml
+          workflow_conclusion: success
+          name: build-artifacts-${{ github.sha }}
+          path: artifacts
+
+      # Verify SHA matches
+      - name: Verify build SHA
+        id: verify
+        if: steps.download.outcome == 'success'
+        run: |
+          $expected_sha = Get-Content artifacts/SHA.txt
+          if ($expected_sha -ne "${{ github.sha }}") {
+            echo "SHA mismatch - need fresh build"
+            exit 1
+          }
+
+      - name: Install Rust
+        if: steps.download.outcome == 'failure' || steps.verify.outcome == 'failure'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies and build outputs
+        if: steps.download.outcome == 'failure' || steps.verify.outcome == 'failure'
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build
+        if: steps.download.outcome == 'failure' || steps.verify.outcome == 'failure'
+        run: cargo build --release
+
+      - name: Move build artifacts
+        if: steps.download.outcome == 'failure' || steps.verify.outcome == 'failure'
+        run: |
+          mkdir artifacts
+          move target/release/*.exe artifacts/
+
+      # Get the next version tag (e.g., v0.1.0, v0.2.0)
+      - name: Bump version and push tag
+        id: tag_version
+        uses: anothrNick/github-tag-action@1.71.0 # Using a specific version is recommended
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: minor              # Increment minor version by default
+          INITIAL_VERSION: "0.0.0"         # Start from 0.0.0, so first minor bump is 0.1.0
+          TAG_PREFIX: "v"                  # Prefix tags with "v"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/*.exe
+          tag_name: ${{ steps.tag_version.outputs.new_tag }}     # Use the tag from the previous step
+          name: Release ${{ steps.tag_version.outputs.new_tag }} # Use the tag in the release name
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
