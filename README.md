@@ -1,6 +1,6 @@
-# Windows OpenAI Whisper Dictation
+# Whisper-dictate
 
-A fast, REST-based dictation tool for Windows, utilizing the renowned OpenAI Whisper model for accurate speech-to-text transcription.
+A fast, Rust-based dictation tool for Windows, utilizing the renowned OpenAI Whisper model for accurate speech-to-text transcription.
 
 ## Features
 
@@ -15,6 +15,7 @@ A fast, REST-based dictation tool for Windows, utilizing the renowned OpenAI Whi
 
 -   Windows Operating System.
 -   An `OPENAI_API_KEY` environment variable set with your valid OpenAI API key.
+-   Enough credits in your OpenAI account. The Whisper API costs $0.004 per minute of audio.
 
 ### Installation & Execution
 
@@ -24,7 +25,7 @@ A fast, REST-based dictation tool for Windows, utilizing the renowned OpenAI Whi
 ## How to Use
 
 -   **Toggle Recording**: The global hotkey `CTRL + ALT + SPACE` acts as a toggle. Press it once to start recording your voice; press it again to stop.
--   **Transcription**: After you stop recording, the audio is processed. The transcribed text will then be automatically typed into your currently active window.
+-   **Transcription**: After you stop recording, the audio is processed. Please allow a brief moment for the API to transcribe the audio and return the response; processing time is proportional to recording duration. The transcribed text will then be automatically typed into your currently active window. To ensure accurate placement, **avoid moving your cursor while waiting for the response.**
 
 ## Important Notes
 
