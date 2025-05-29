@@ -68,12 +68,12 @@ jobs:
       # Get the next version tag (e.g., v0.1.0, v0.2.0)
       - name: Bump version and push tag
         id: tag_version
-        uses: anothrNick/github-tag-action@1.71.0 # Using a specific version is recommended
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: minor              # Increment minor version by default
-          INITIAL_VERSION: "0.0.0"         # Start from 0.0.0, so first minor bump is 0.1.0
-          TAG_PREFIX: "v"                  # Prefix tags with "v"
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: minor              # Increment minor version by default
+          initial_version: "0.0.0"         # Start from 0.0.0, so first minor bump is 0.1.0
+          tag_prefix: "v"                  # Prefix tags with "v"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
