@@ -19,8 +19,9 @@ A fast, Rust-based dictation tool for Windows, utilizing the renowned OpenAI Whi
 
 ### Installation & Execution
 
-1.  Download the latest release executable (e.g., `windows-openai-whisper.exe`) from the releases page.
-2.  To start the application, simply double-click the executable. It will appear in your system tray.
+1.  Download the latest release executable (e.g., `windows-openai-whisper.exe`) and `mp3lame.dll` from the releases page.
+2.  Ensure both `windows-openai-whisper.exe` and `mp3lame.dll` are in the same directory.
+3.  To start the application, simply double-click the executable. It will appear in your system tray.
 
 ## How to Use
 
