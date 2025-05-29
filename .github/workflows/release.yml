@@ -80,11 +80,6 @@ jobs:
           initial_version: "0.0.0"         # Start from 0.0.0, so first minor bump is 0.1.0
           tag_prefix: "v"                  # Prefix tags with "v"
 
-      - name: Zip artifacts
-        run: |
-          Compress-Archive -Path artifacts/* -DestinationPath whisper-dictate-${{ steps.tag_version.outputs.new_tag }}.zip
-        shell: pwsh
-
       - name: Get short version string
         id: short_version
         run: |
@@ -93,11 +88,16 @@ jobs:
           echo "short_tag_name=$SHORT_TAG" >> $GITHUB_OUTPUT
         shell: bash
 
+      - name: Zip artifacts
+        run: |
+          Compress-Archive -Path artifacts/* -DestinationPath whisper-dictate-${{ steps.short_version.outputs.short_tag_name }}.zip
+        shell: pwsh
+
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          files: whisper-dictate-${{ steps.tag_version.outputs.new_tag }}.zip
+          files: whisper-dictate-${{ steps.short_version.outputs.short_tag_name }}.zip
           tag_name: ${{ steps.tag_version.outputs.new_tag }}     # Use the tag from the previous step
           name: Release ${{ steps.short_version.outputs.short_tag_name }}
           draft: false
