@@ -1,4 +1,4 @@
-#![windows_subsystem = "windows"]
+#[cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use enigo::Keyboard;
 use std::{
     env,
@@ -72,7 +72,7 @@ async fn main() -> Result<()> {
     // Load embedded icon data for initial tray icon.
     let menu = Menu::new();
     let exit_item = MenuItem::new("Exit", true, None);
-    let _ = menu.append(&exit_item);
+    menu.append(&exit_item).unwrap();
 
     let tray_item = TrayIconBuilder::new()
         .with_menu(Box::new(menu))
