@@ -321,7 +321,7 @@ async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
         let mut lame = Lame::new().unwrap();
         lame.set_channels(2).unwrap();
         lame.set_sample_rate(sample_rate).unwrap();
-        lame.set_quality(2).unwrap();
+        lame.set_quality(5).unwrap();
         lame.set_kilobitrate(128).unwrap();
         lame.init_params().unwrap();
 
