@@ -91,6 +91,7 @@ fn main() -> Result<()> {
     let tray_item = TrayIconBuilder::new()
         .with_menu(Box::new(menu))
         .with_icon(default_icon.clone())
+        .with_tooltip("Whisper-Dictate")
         .build()
         .unwrap();
 
