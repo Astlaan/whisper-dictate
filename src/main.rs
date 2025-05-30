@@ -1,13 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use enigo::Keyboard;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{
     env,
     sync::atomic::{AtomicBool, Ordering},
     sync::Arc,
     time::Instant,
 };
-use std::rc::Rc;
-use std::cell::RefCell;
 // tokio::runtime::Runtime import removed as it's unused. Builder is used directly.
 use windows::Win32::System::Com::{CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED};
 
@@ -23,13 +23,16 @@ use cpal::{
 };
 use global_hotkey::{
     hotkey::{Code, HotKey, Modifiers},
-    GlobalHotKeyManager, GlobalHotKeyEvent, HotKeyState, // Added HotKeyState
+    GlobalHotKeyEvent,
+    GlobalHotKeyManager,
+    HotKeyState, // Added HotKeyState
 };
 use lame::Lame;
 use reqwest::Client;
 use tray_icon::{
-    menu::{Menu, MenuItem, MenuEvent}, // Added MenuEvent
-    TrayIcon, TrayIconBuilder,
+    menu::{Menu, MenuEvent, MenuItem}, // Added MenuEvent
+    TrayIcon,
+    TrayIconBuilder,
 };
 
 // Tao imports for the main event loop
@@ -85,7 +88,7 @@ fn main() -> Result<()> {
     // Assuming id() returns &MenuId and MenuId is Clone (u32 is Clone)
     // Or if id() returns MenuId (u32, which is Copy), .clone() is a no-op or not needed.
     // Given previous compiler error E0507 fix, .id().clone() was accepted.
-    let actual_exit_item_id = exit_item.id().clone(); 
+    let actual_exit_item_id = exit_item.id().clone();
     menu.append(&exit_item).unwrap();
 
     let tray_item = TrayIconBuilder::new()
@@ -128,7 +131,8 @@ fn main() -> Result<()> {
         *control_flow = ControlFlow::Poll;
 
         if let Ok(menu_event) = MenuEvent::receiver().try_recv() {
-            if menu_event.id == actual_exit_item_id { // Compare with the ID of the actual menu item
+            if menu_event.id == actual_exit_item_id {
+                // Compare with the ID of the actual menu item
                 *control_flow = ControlFlow::Exit;
                 return;
             }
@@ -148,18 +152,31 @@ fn main() -> Result<()> {
                     }
 
                     if !is_recording {
-                        if let Err(e) = start_recording_wrapper(Rc::clone(&current_state_rc_clone)).await {
+                        if let Err(e) =
+                            start_recording_wrapper(Rc::clone(&current_state_rc_clone)).await
+                        {
                             eprintln!("Error starting recording: {:?}", e);
-                            show_balloon(Rc::clone(&current_state_rc_clone), "Error", &format!("Start recording failed: {}", e)).await;
+                            show_balloon(
+                                Rc::clone(&current_state_rc_clone),
+                                "Error",
+                                &format!("Start recording failed: {}", e),
+                            )
+                            .await;
                         }
                     } else {
-                        { // Scope to set processing to true
+                        {
+                            // Scope to set processing to true
                             let mut state_borrow_mut = current_state_rc_clone.borrow_mut();
                             state_borrow_mut.processing = true;
                         } // RefMut guard dropped here
                         if let Err(e) = stop_and_process(Rc::clone(&current_state_rc_clone)).await {
                             eprintln!("Error processing recording: {:?}", e);
-                            show_balloon(Rc::clone(&current_state_rc_clone), "Error", &format!("Processing failed: {}", e)).await;
+                            show_balloon(
+                                Rc::clone(&current_state_rc_clone),
+                                "Error",
+                                &format!("Processing failed: {}", e),
+                            )
+                            .await;
                         }
                     }
                 });
@@ -183,7 +200,7 @@ fn main() -> Result<()> {
 // Wrapper to adapt start_recording to the Rc<RefCell<AppState>> pattern
 async fn start_recording_wrapper(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
     let mut state_guard = state_rc.borrow_mut();
-    
+
     let host = cpal::default_host();
     let device = host
         .default_input_device()
@@ -231,15 +248,16 @@ async fn start_recording_wrapper(state_rc: Rc<RefCell<AppState>>) -> Result<()> 
     state_guard.stream = Some(stream);
     state_guard.recording = true;
     state_guard.start_time = Some(Instant::now());
-    
+
     // Access tray via Rc<RefCell<TrayIcon>>
     let tray_clone = Rc::clone(&state_guard.tray);
-    tray_clone.borrow_mut().set_icon(Some(state_guard.recording_icon.clone()))?;
-    
+    tray_clone
+        .borrow_mut()
+        .set_icon(Some(state_guard.recording_icon.clone()))?;
+
     state_guard.record_flag.store(true, Ordering::Relaxed);
     Ok(())
 }
-
 
 async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
     let processing_start_time = Instant::now();
@@ -263,12 +281,14 @@ async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
                 }
             }
             state_guard.record_flag.store(false, Ordering::Relaxed);
-            
+
             default_icon_clone = state_guard.default_icon.clone();
             let tray_clone = Rc::clone(&state_guard.tray);
-            tray_clone.borrow_mut().set_icon(Some(default_icon_clone.clone()))?;
+            tray_clone
+                .borrow_mut()
+                .set_icon(Some(default_icon_clone.clone()))?;
             state_guard.recording = false;
-            
+
             if let Some(start_time) = state_guard.start_time.take() {
                 recording_duration = start_time.elapsed();
                 println!("Recording duration: {:?}", recording_duration);
@@ -288,19 +308,21 @@ async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
         )
         .await;
 
-        let pcm_buffer_arc = pcm_buffer_option.ok_or_else(|| anyhow::anyhow!("No PCM buffer available"))?;
+        let pcm_buffer_arc =
+            pcm_buffer_option.ok_or_else(|| anyhow::anyhow!("No PCM buffer available"))?;
         let samples: Vec<i16> = {
             let buf = pcm_buffer_arc.lock().unwrap();
             buf.clone()
         };
-        let sample_rate = sample_rate_option.ok_or_else(|| anyhow::anyhow!("No sample rate available"))?;
+        let sample_rate =
+            sample_rate_option.ok_or_else(|| anyhow::anyhow!("No sample rate available"))?;
         let channels = channels_option.unwrap_or(2);
 
         let mut lame = Lame::new().unwrap();
-        lame.set_channels(2).unwrap(); 
+        lame.set_channels(2).unwrap();
         lame.set_sample_rate(sample_rate).unwrap();
-        lame.set_quality(2).unwrap(); 
-        lame.set_kilobitrate(128).unwrap(); 
+        lame.set_quality(2).unwrap();
+        lame.set_kilobitrate(128).unwrap();
         lame.init_params().unwrap();
 
         let (left, right) = if channels == 1 {
@@ -315,7 +337,7 @@ async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
             }
             (left, right)
         };
-        
+
         let encoding_start_time = Instant::now();
         let num_samples_per_channel = left.len();
         let mp3_buffer_size = (num_samples_per_channel as f32 * 1.25).ceil() as usize + 7200;
@@ -369,20 +391,34 @@ async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
                 return Err(anyhow::anyhow!("API request failed: {}", e));
             }
         };
-        
+
         let status = response.status();
         let response_text = response.text().await?; // Consume response_data to get text
 
         if !status.is_success() {
-            show_balloon(Rc::clone(&state_rc), "API Error", &format!("API Error {}: {}", status, response_text)).await;
-            return Err(anyhow::anyhow!("API request failed with status {}: {}", status, response_text));
+            show_balloon(
+                Rc::clone(&state_rc),
+                "API Error",
+                &format!("API Error {}: {}", status, response_text),
+            )
+            .await;
+            return Err(anyhow::anyhow!(
+                "API request failed with status {}: {}",
+                status,
+                response_text
+            ));
         }
 
         // Now use response_text for parsing JSON
         let transcription_text = match serde_json::from_str::<serde_json::Value>(&response_text) {
             Ok(json) => json["text"].as_str().unwrap_or_default().to_string(),
             Err(e) => {
-                show_balloon(Rc::clone(&state_rc), "API Error", &format!("Failed to parse API response: {}", e)).await;
+                show_balloon(
+                    Rc::clone(&state_rc),
+                    "API Error",
+                    &format!("Failed to parse API response: {}", e),
+                )
+                .await;
                 return Err(anyhow::anyhow!("Failed to parse response: {}", e));
             }
         };
@@ -394,7 +430,7 @@ async fn stop_and_process(state_rc: Rc<RefCell<AppState>>) -> Result<()> {
         Ok(())
     })
     .await;
-    
+
     // Final lock to set processing to false
     {
         let mut state_guard = state_rc.borrow_mut();
@@ -409,9 +445,9 @@ async fn show_balloon(state_rc: Rc<RefCell<AppState>>, title: &str, msg: &str) {
     let state_guard = state_rc.borrow(); // .borrow() is enough if only accessing tray
     let tray_clone = Rc::clone(&state_guard.tray);
     let tray_guard = tray_clone.borrow(); // .borrow() for TrayIcon
-    // Using set_tooltip as a simple way to show feedback.
-    // For actual balloon notifications, tray-icon might need specific platform features or another crate.
-    // The current set_tooltip will update the hover text.
+                                          // Using set_tooltip as a simple way to show feedback.
+                                          // For actual balloon notifications, tray-icon might need specific platform features or another crate.
+                                          // The current set_tooltip will update the hover text.
     let _ = tray_guard.set_tooltip(Some(&format!("{}: {}", title, msg)));
     // Consider adding a timed reset for the tooltip or using a dedicated notification crate if true balloons are needed.
     println!("Balloon: {} - {}", title, msg); // Also print to console for visibility
